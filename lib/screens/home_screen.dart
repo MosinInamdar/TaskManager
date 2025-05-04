@@ -25,7 +25,6 @@ class _HomeScreenContent extends StatefulWidget {
   State<_HomeScreenContent> createState() => _HomeScreenContentState();
 }
 
-
 class _HomeScreenContentState extends State<_HomeScreenContent> {
   String searchQuery = "";
   bool isSearching = false;
@@ -37,8 +36,6 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
   @override
   void dispose() {
     _searchController.dispose();
-
-
     _taskTitleController.dispose();
     _categoryController.dispose();
     super.dispose();
@@ -60,14 +57,13 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
   }
   
   void updateState() {
-    
     setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     final statusFilter = [
-{"status": "To Do", "filteredTask": _filterTasksByStatus("To Do")},
+      {"status": "To Do", "filteredTask": _filterTasksByStatus("To Do")},
       {"status": "In Progress", "filteredTask": _filterTasksByStatus("In Progress")},
       {"status": "Completed", "filteredTask": _filterTasksByStatus("Completed")},
     ];
@@ -83,6 +79,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
               child: ColumnBoard(
                 title: 'To Do',
                 tasks: statusFilter[0]["filteredTask"] as List<Task>,
+                onTaskUpdated: updateState,
               ),
             ),
             const SizedBox(width: 10),
@@ -90,6 +87,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
               child: ColumnBoard(
                 title: 'In Progress',
                 tasks: statusFilter[1]["filteredTask"] as List<Task>,
+                onTaskUpdated: updateState,
               ),
             ),
             const SizedBox(width: 10),
@@ -97,6 +95,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
               child: ColumnBoard(
                 title: 'Completed',
                 tasks: statusFilter[2]["filteredTask"] as List<Task>,
+                onTaskUpdated: updateState,
               ),
             ),
           ],
