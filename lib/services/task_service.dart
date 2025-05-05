@@ -7,15 +7,16 @@ import 'package:uuid/uuid.dart';
 import '../models/task_model.dart';
 import 'package:path_provider/path_provider.dart';
 
-
 class TaskService with ChangeNotifier {
   final List<Task> _tasks = [];
   String? currentUserId;
 
-  UnmodifiableListView<Task> get tasks => currentUserId == null
-      ? UnmodifiableListView([])
-      : UnmodifiableListView(
-          _tasks.where((task) => task.userId == currentUserId));
+  UnmodifiableListView<Task> get tasks =>
+      currentUserId == null
+          ? UnmodifiableListView([])
+          : UnmodifiableListView(
+            _tasks.where((task) => task.userId == currentUserId),
+          );
 
   void setUserId(String userId) {
     currentUserId = userId;
@@ -42,7 +43,9 @@ class TaskService with ChangeNotifier {
     if (currentUserId == null) return;
     try {
       final file = await _getLocalFile(currentUserId!);
-      final jsonString = json.encode(_tasks.map((task) => task.toJson()).toList());
+      final jsonString = json.encode(
+        _tasks.map((task) => task.toJson()).toList(),
+      );
       await file.writeAsString(jsonString);
     } catch (e) {
       debugPrint('Error saving tasks: $e');
@@ -90,7 +93,9 @@ class TaskService with ChangeNotifier {
 
   void updateTask(Task task) {
     if (currentUserId == null) return;
-    final index = _tasks.indexWhere((t) => t.id == task.id && t.userId == currentUserId);
+    final index = _tasks.indexWhere(
+      (t) => t.id == task.id && t.userId == currentUserId,
+    );
     if (index != -1) {
       _tasks[index] = task;
       saveData();
@@ -139,9 +144,11 @@ class TaskService with ChangeNotifier {
 
     return _tasks
         .where((task) => task.userId == currentUserId)
-        .where((task) =>
-            task.title.toLowerCase().contains(query.toLowerCase()) ||
-            task.description.toLowerCase().contains(query.toLowerCase()))
+        .where(
+          (task) =>
+              task.title.toLowerCase().contains(query.toLowerCase()) ||
+              task.description.toLowerCase().contains(query.toLowerCase()),
+        )
         .toList();
   }
 

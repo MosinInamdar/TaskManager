@@ -4,7 +4,7 @@ class Task {
   String title;
   String description;
   String status; // "To Do", "In Progress", "Completed"
-  DateTime? dueDate; 
+  DateTime? dueDate;
   int priority;
   final List<Task> subtasks;
   List<String> categories;
@@ -12,35 +12,68 @@ class Task {
   String recurrencePattern;
   List<String> userIds;
 
+  Task copyWith({
+    String? id,
+    String? userId,
+    String? title,
+    String? description,
+    String? status,
+    DateTime? dueDate,
+    int? priority,
+    List<Task>? subtasks,
+    List<String>? categories,
+    bool? isRecurring,
+    String? recurrencePattern,
+    List<String>? userIds,
+  }) {
+    return Task(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      status: status ?? this.status,
+      dueDate: dueDate ?? this.dueDate,
+      priority: priority ?? this.priority,
+      subtasks: subtasks ?? this.subtasks,
+      categories: categories ?? this.categories,
+      isRecurring: isRecurring ?? this.isRecurring,
+      recurrencePattern: recurrencePattern ?? this.recurrencePattern,
+      userIds: userIds ?? this.userIds,
+    );
+  }
+
   Task({
     required this.id,
     required this.userId,
     required this.title,
     this.description = '',
     this.status = 'To Do',
-    this.dueDate,    
+    this.dueDate,
     this.priority = 0,
     List<Task> subtasks = const [],
     this.categories = const [],
     this.isRecurring = false,
     this.recurrencePattern = '',
     this.userIds = const [],
-  }) : subtasks = subtasks
-          .map((subtask) => Task(
-                id: subtask.id,
-                userId: userId,
-                title: subtask.title,
-                description: subtask.description,
-                status: subtask.status,
-                dueDate: subtask.dueDate,
-                priority: subtask.priority,
-                subtasks: subtask.subtasks,
-                categories: subtask.categories,
-                isRecurring: subtask.isRecurring,
-                recurrencePattern: subtask.recurrencePattern,
-                userIds: subtask.userIds,
-              ))
-          .toList();
+  }) : subtasks =
+           subtasks
+               .map(
+                 (subtask) => Task(
+                   id: subtask.id,
+                   userId: userId,
+                   title: subtask.title,
+                   description: subtask.description,
+                   status: subtask.status,
+                   dueDate: subtask.dueDate,
+                   priority: subtask.priority,
+                   subtasks: subtask.subtasks,
+                   categories: subtask.categories,
+                   isRecurring: subtask.isRecurring,
+                   recurrencePattern: subtask.recurrencePattern,
+                   userIds: subtask.userIds,
+                 ),
+               )
+               .toList();
 
   Map<String, dynamic> toJson() {
     return {
@@ -68,11 +101,12 @@ class Task {
       status: json['status'] ?? 'To Do',
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
       priority: json['priority'] ?? 0,
-      subtasks: json['subtasks'] != null
-          ? (json['subtasks'] as List)
-              .map((subtaskJson) => Task.fromJson(subtaskJson))
-              .toList()
-          : [],
+      subtasks:
+          json['subtasks'] != null
+              ? (json['subtasks'] as List)
+                  .map((subtaskJson) => Task.fromJson(subtaskJson))
+                  .toList()
+              : [],
       categories: List<String>.from(json['categories'] ?? []),
       isRecurring: json['isRecurring'] ?? false,
       recurrencePattern: json['recurrencePattern'] ?? '',
