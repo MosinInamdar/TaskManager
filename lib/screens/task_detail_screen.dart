@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/task_model.dart';
 import '../services/task_service.dart';
+import 'package:intl/intl.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final Task task;
 
-  const TaskDetailScreen({super.key, required this.task});
+  const TaskDetailScreen({Key? key, required this.task}) : super(key: key);
 
   @override
   State<TaskDetailScreen> createState() => _TaskDetailScreenState();
@@ -16,346 +16,853 @@ class TaskDetailScreen extends StatefulWidget {
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  late TextEditingController _newSubtaskController;
-  late TextEditingController _newCategoryController;
-
-  DateTime? _dueDate;
-  int _priority = 0;
-  late List<Task> _subtasks;
+  late String _status;
+  late DateTime? _dueDate;
+  late int _priority;
+  late bool _isRecurring;
+  late String _recurrencePattern;
   late List<String> _categories;
-  bool _isRecurring = false;
-  String _recurrencePattern = '';
-  List<String> _userIds = [];
-  String? _selectedStatus;
+  late List<Task> _subtasks;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.task.title);
     _descriptionController = TextEditingController(
-      text: widget.task.description ?? "",
+      text: widget.task.description,
     );
-    _newSubtaskController = TextEditingController();
-    _newCategoryController = TextEditingController();
-
+    _status = widget.task.status;
     _dueDate = widget.task.dueDate;
-    _selectedStatus = widget.task.status;
     _priority = widget.task.priority;
-    _subtasks = List.from(widget.task.subtasks);
-    _categories = List.from(widget.task.categories);
     _isRecurring = widget.task.isRecurring;
-    _recurrencePattern = widget.task.recurrencePattern;
-    _userIds = List.from(widget.task.userIds);
+    _recurrencePattern =
+        widget.task.recurrencePattern.isEmpty
+            ? 'daily'
+            : widget.task.recurrencePattern;
+    _categories = List<String>.from(widget.task.categories);
+    _subtasks = List<Task>.from(widget.task.subtasks);
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _newSubtaskController.dispose();
-    _newCategoryController.dispose();
     super.dispose();
+  }
+
+  Color _getPriorityColor(int priority) {
+    switch (priority) {
+      case 0:
+        return Colors.grey.shade400;
+      case 1:
+        return Colors.blue.shade400;
+      case 2:
+        return Colors.orange.shade400;
+      case 3:
+        return Colors.red.shade400;
+      default:
+        return Colors.grey.shade400;
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _dueDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).colorScheme.primary,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _dueDate) {
+      setState(() {
+        _dueDate = picked;
+      });
+    }
+  }
+
+  void _saveChanges() {
+    final taskService = Provider.of<TaskService>(context, listen: false);
+
+    final updatedTask = widget.task.copyWith(
+      title: _titleController.text,
+      description: _descriptionController.text,
+      status: _status,
+      dueDate: _dueDate,
+      priority: _priority,
+      categories: _categories,
+      isRecurring: _isRecurring,
+      recurrencePattern: _isRecurring ? _recurrencePattern : '',
+      subtasks: _subtasks,
+    );
+
+    taskService.updateTask(updatedTask);
+    Navigator.pop(context);
+  }
+
+  void _showAddCategoryDialog() {
+    final TextEditingController categoryController = TextEditingController();
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Add Category',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          content: TextField(
+            controller: categoryController,
+            decoration: InputDecoration(
+              hintText: 'Enter category name',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: Icon(
+                Icons.label_outline,
+                color: theme.colorScheme.primary,
+              ),
+              filled: true,
+              fillColor: theme.colorScheme.surface,
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (categoryController.text.isNotEmpty) {
+                  setState(() {
+                    _categories.add(categoryController.text);
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddSubtaskDialog() {
+    // This would typically navigate to a new screen or show a dialog
+    // For now, just showing a more stylish SnackBar
+    final snackBar = SnackBar(
+      content: const Text('Subtask functionality would be implemented here'),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      action: SnackBarAction(label: 'OK', onPressed: () {}),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   @override
   Widget build(BuildContext context) {
-    final taskService = Provider.of<TaskService>(context);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Task Details'),
+        centerTitle: true,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () {
-              taskService.deleteTask(widget.task.id);
-              Navigator.pop(context);
-            },
+            icon: Icon(Icons.save, color: Colors.orange),
+            onPressed: _saveChanges,
+            tooltip: 'Save Changes',
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// TITLE
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            /// DESCRIPTION
-            TextField(
-              controller: _descriptionController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            /// STATUS
-            DropdownButtonFormField<String>(
-              value: _selectedStatus,
-              decoration: const InputDecoration(
-                labelText: 'Status',
-                border: OutlineInputBorder(),
-              ),
-              items:
-                  ['To Do', 'In Progress', 'Completed']
-                      .map(
-                        (status) => DropdownMenuItem(
-                          value: status,
-                          child: Text(status),
-                        ),
-                      )
-                      .toList(),
-              onChanged:
-                  (value) => setState(() {
-                    _selectedStatus = value;
-                  }),
-            ),
-
-            const SizedBox(height: 16),
-
-            /// DUE DATE
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Due Date'),
-              subtitle: Text(
-                _dueDate != null
-                    ? DateFormat.yMMMd().format(_dueDate!)
-                    : 'Not set',
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.calendar_today),
-                onPressed: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _dueDate ?? DateTime.now(),
-                    firstDate: DateTime(2022),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      _dueDate = picked;
-                    });
-                  }
-                },
-              ),
-            ),
-
-            const Divider(height: 32),
-
-            /// PRIORITY
-            const Text(
-              "Priority",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            Slider(
-              value: _priority.toDouble(),
-              min: 0,
-              max: 5,
-              divisions: 5,
-              label: _priority.toString(),
-              onChanged: (value) {
-                setState(() {
-                  _priority = value.round();
-                });
-              },
-            ),
-
-            const Divider(height: 32),
-
-            /// SUBTASKS
-            const Text(
-              "Subtasks",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _subtasks.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  elevation: 1,
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    title: Text(_subtasks[index].title),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        setState(() {
-                          _subtasks.removeAt(index);
-                        });
-                      },
-                    ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              theme.colorScheme.surface,
+              theme.colorScheme.surface.withOpacity(0.95),
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Task Status indicator
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(_status),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _status,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _newSubtaskController,
-              decoration: InputDecoration(
-                labelText: 'Add Subtask',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    final text = _newSubtaskController.text.trim();
-                    if (text.isNotEmpty) {
-                      setState(() {
-                        _subtasks.add(
-                          Task(
-                            id: UniqueKey().toString(),
-                            title: text,
-                            userId: widget.task.userId,
-                          ),
-                        );
-                        _newSubtaskController.clear();
-                      });
-                    }
-                  },
                 ),
               ),
-            ),
 
-            const Divider(height: 32),
+              // Title
+              Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: TextFormField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Task Title',
+                      border: InputBorder.none,
+                      icon: Icon(Icons.title),
+                    ),
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+              ),
 
-            /// CATEGORIES
-            const Text(
-              "Categories",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children:
-                  _categories
-                      .map(
-                        (category) => Chip(
-                          label: Text(category),
-                          onDeleted: () {
+              // Description
+              Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: TextFormField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: InputBorder.none,
+                      icon: Icon(Icons.description),
+                    ),
+                    style: theme.textTheme.bodyMedium,
+                    maxLines: 5,
+                  ),
+                ),
+              ),
+
+              // Status
+              Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_outline, size: 24),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _status,
+                            isExpanded: true,
+                            hint: const Text('Status'),
+                            items:
+                                [
+                                  'To Do',
+                                  'In Progress',
+                                  'Completed',
+                                ].map<DropdownMenuItem<String>>((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
+                                }).toList(),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _status = newValue;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Due Date
+              Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: InkWell(
+                  onTap: () => _selectDate(context),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today),
+                        const SizedBox(width: 16),
+                        Text(
+                          _dueDate == null
+                              ? 'No Due Date'
+                              : DateFormat('MMM dd, yyyy').format(_dueDate!),
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                        const Spacer(),
+                        if (_dueDate != null)
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                _dueDate = null;
+                              });
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Priority
+              Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.flag),
+                          const SizedBox(width: 16),
+                          Text(
+                            'Priority: ${_getPriorityLabel(_priority)}',
+                            style: theme.textTheme.bodyLarge,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: _getPriorityColor(_priority),
+                          inactiveTrackColor: _getPriorityColor(
+                            _priority,
+                          ).withOpacity(0.3),
+                          thumbColor: _getPriorityColor(_priority),
+                          overlayColor: _getPriorityColor(
+                            _priority,
+                          ).withOpacity(0.2),
+                          trackHeight: 6,
+                        ),
+                        child: Slider(
+                          value: _priority.toDouble(),
+                          min: 0,
+                          max: 3,
+                          divisions: 3,
+                          label: _getPriorityLabel(_priority),
+                          onChanged: (double value) {
                             setState(() {
-                              _categories.remove(category);
+                              _priority = value.toInt();
                             });
                           },
                         ),
-                      )
-                      .toList(),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _newCategoryController,
-              decoration: InputDecoration(
-                labelText: 'Add Category',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    final category = _newCategoryController.text.trim();
-                    if (category.isNotEmpty &&
-                        !_categories.contains(category)) {
-                      setState(() {
-                        _categories.add(category);
-                        _newCategoryController.clear();
-                      });
-                    }
-                  },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'None',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              'Low',
+                              style: TextStyle(
+                                color: Colors.blue[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              'Medium',
+                              style: TextStyle(
+                                color: Colors.orange[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              'High',
+                              style: TextStyle(
+                                color: Colors.red[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            const Divider(height: 32),
-
-            /// RECURRING TASK
-            CheckboxListTile(
-              title: const Text('Recurring Task'),
-              value: _isRecurring,
-              onChanged: (value) {
-                setState(() {
-                  _isRecurring = value ?? false;
-                });
-              },
-            ),
-            if (_isRecurring)
-              DropdownButtonFormField<String>(
-                value:
-                    _recurrencePattern.isNotEmpty ? _recurrencePattern : null,
-                decoration: const InputDecoration(
-                  labelText: 'Recurrence Pattern',
-                  border: OutlineInputBorder(),
+              // Categories
+              Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                items:
-                    ['daily', 'weekly', 'monthly']
-                        .map(
-                          (pattern) => DropdownMenuItem(
-                            value: pattern,
-                            child: Text(pattern),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.label_outline),
+                              const SizedBox(width: 16),
+                              Text(
+                                'Categories',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                            ],
                           ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Add'),
+                            onPressed: _showAddCategoryDialog,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (_categories.isNotEmpty)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children:
+                              _categories.map((category) {
+                                return Chip(
+                                  label: Text(category),
+                                  deleteIcon: const Icon(Icons.close, size: 16),
+                                  onDeleted: () {
+                                    setState(() {
+                                      _categories.remove(category);
+                                    });
+                                  },
+                                  backgroundColor: theme.colorScheme.surface,
+                                  side: BorderSide(
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.5),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                );
+                              }).toList(),
                         )
-                        .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _recurrencePattern = value ?? '';
-                  });
-                },
+                      else
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: theme.dividerColor),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.6,
+                                ),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'No categories added',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
 
-            const SizedBox(height: 16),
-
-            /// USER IDS
-            TextField(
-              controller: TextEditingController(text: _userIds.join(',')),
-              decoration: const InputDecoration(
-                labelText: 'User IDs (comma-separated)',
-                border: OutlineInputBorder(),
+              // Recurring Task
+              Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        title: Row(
+                          children: [
+                            const Icon(Icons.repeat),
+                            const SizedBox(width: 16),
+                            const Text('Recurring Task'),
+                          ],
+                        ),
+                        value: _isRecurring,
+                        onChanged: (bool value) {
+                          setState(() {
+                            _isRecurring = value;
+                          });
+                        },
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: theme.colorScheme.primary,
+                      ),
+                      if (_isRecurring)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Row(
+                            children: [
+                              const SizedBox(
+                                width: 40,
+                              ), // Align with text above
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: _recurrencePattern,
+                                  decoration: InputDecoration(
+                                    labelText: 'Repeat',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  items:
+                                      [
+                                        'daily',
+                                        'weekly',
+                                        'monthly',
+                                      ].map<DropdownMenuItem<String>>((
+                                        String value,
+                                      ) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value.capitalize()),
+                                        );
+                                      }).toList(),
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _recurrencePattern = newValue;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-              onChanged: (value) {
-                _userIds = value.split(',').map((e) => e.trim()).toList();
-              },
-            ),
 
-            const SizedBox(height: 24),
-
-            /// SAVE BUTTON
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.save),
-                label: const Text('Save Changes'),
-                onPressed: () {
-                  final updatedTask = Task(
-                    id: widget.task.id,
-                    userId: widget.task.userId,
-                    title: _titleController.text.trim(),
-                    description: _descriptionController.text.trim(),
-                    status: _selectedStatus ?? 'To Do',
-                    dueDate: _dueDate,
-                    priority: _priority,
-                    subtasks: _subtasks,
-                    categories: _categories,
-                    isRecurring: _isRecurring,
-                    recurrencePattern: _recurrencePattern,
-                    userIds: _userIds,
-                  );
-                  taskService.updateTask(updatedTask);
-                  Navigator.pop(context);
-                },
+              // Subtasks
+              Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.subdirectory_arrow_right),
+                              const SizedBox(width: 16),
+                              Text(
+                                'Subtasks',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Add'),
+                            onPressed: _showAddSubtaskDialog,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (_subtasks.isNotEmpty)
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _subtasks.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final subtask = _subtasks[index];
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 8,
+                              ),
+                              leading: CircleAvatar(
+                                backgroundColor: _getStatusColor(
+                                  subtask.status,
+                                ).withOpacity(0.2),
+                                child: Icon(
+                                  _getStatusIcon(subtask.status),
+                                  color: _getStatusColor(subtask.status),
+                                  size: 20,
+                                ),
+                              ),
+                              title: Text(
+                                subtask.title,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              subtitle: Text(
+                                subtask.status,
+                                style: TextStyle(
+                                  color: _getStatusColor(subtask.status),
+                                  fontSize: 12,
+                                ),
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () {
+                                  setState(() {
+                                    _subtasks.removeAt(index);
+                                  });
+                                },
+                                color: theme.colorScheme.error,
+                              ),
+                            );
+                          },
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: theme.dividerColor),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.6,
+                                ),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'No subtasks added',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+
+              // Save Button
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _saveChanges,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 4,
+                  ),
+                  child: const Text(
+                    'SAVE CHANGES',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  String _getPriorityLabel(int priority) {
+    switch (priority) {
+      case 0:
+        return 'None';
+      case 1:
+        return 'Low';
+      case 2:
+        return 'Medium';
+      case 3:
+        return 'High';
+      default:
+        return 'None';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'To Do':
+        return Colors.grey.shade700;
+      case 'In Progress':
+        return Colors.blue.shade600;
+      case 'Completed':
+        return Colors.green.shade600;
+      default:
+        return Colors.grey.shade700;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'To Do':
+        return Icons.radio_button_unchecked;
+      case 'In Progress':
+        return Icons.timelapse;
+      case 'Completed':
+        return Icons.check_circle;
+      default:
+        return Icons.radio_button_unchecked;
+    }
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1)}";
   }
 }

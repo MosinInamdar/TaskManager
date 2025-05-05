@@ -39,22 +39,123 @@ class TaskPlannerApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Task Planner',
         theme: ThemeData(
-          primarySwatch: Colors.indigo,
+          // Enhanced color scheme
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF3949AB),
+            brightness: Brightness.light,
+            primary: const Color(0xFF3949AB),
+            secondary: const Color(0xFF5C6BC0),
+            tertiary: const Color(0xFF8C9EFF),
+            background: Colors.white,
+            surface: Colors.white,
+          ),
+          useMaterial3: true,
           scaffoldBackgroundColor: Colors.white,
+          fontFamily:
+              'Poppins', // Consider adding this font to your pubspec.yaml
+          // Improved app bar theme
           appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.indigo,
+            backgroundColor: Color(0xFF3949AB),
             foregroundColor: Colors.white,
-            elevation: 0,
+            elevation: 2,
+            centerTitle: true,
+            titleTextStyle: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor: Colors.indigo,
+
+          // Improved floating action button theme
+          floatingActionButtonTheme: FloatingActionButtonThemeData(
+            backgroundColor: const Color(0xFF3949AB),
+            foregroundColor: Colors.white,
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
+
+          // Improved elevated button theme
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              elevation: 2,
+              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFF3949AB),
+              elevation: 3,
+              shadowColor: const Color(0xFF3949AB).withOpacity(0.4),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+
+          // Text button theme
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF3949AB),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+
+          // Card theme
+          cardTheme: CardTheme(
+            elevation: 4,
+            shadowColor: Colors.black.withOpacity(0.2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            color: Colors.white,
+          ),
+
+          // Input decoration theme
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 20,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFF3949AB), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+            ),
+            floatingLabelStyle: const TextStyle(color: Color(0xFF3949AB)),
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+          ),
+
+          // Checkbox theme
+          checkboxTheme: CheckboxThemeData(
+            fillColor: MaterialStateProperty.resolveWith<Color>((states) {
+              if (states.contains(MaterialState.selected)) {
+                return const Color(0xFF3949AB);
+              }
+              return Colors.white;
+            }),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
             ),
           ),
         ),
@@ -64,133 +165,322 @@ class TaskPlannerApp extends StatelessWidget {
   }
 }
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedSplashScreen(
-      duration: 2500,
-      splash: const SplashContent(),
-      nextScreen: const LoginWrapper(),
-      splashTransition: SplashTransition.fadeTransition,
-      pageTransitionType: PageTransitionType.fade,
-      backgroundColor: Colors.indigo,
-    );
-  }
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class SplashContent extends StatefulWidget {
-  const SplashContent({super.key});
-
-  @override
-  State<SplashContent> createState() => _SplashContentState();
-}
-
-class _SplashContentState extends State<SplashContent>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _logoAnimation;
-  late Animation<double> _textAnimation;
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _backgroundAnimationController;
+  late AnimationController _contentAnimationController;
+  late Animation<Color?> _backgroundColorAnimation;
+  late Animation<double> _logoScaleAnimation;
+  late Animation<double> _logoRotateAnimation;
+  late Animation<double> _titleSlideAnimation;
+  late Animation<double> _subtitleFadeAnimation;
+  late Animation<double> _taskItemsAnimation;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+
+    // Background animation controller
+    _backgroundAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 2000),
     );
 
-    _logoAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    // Content animations controller
+    _contentAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    );
+
+    // Background gradient animation
+    _backgroundColorAnimation = ColorTween(
+      begin: const Color(0xFF1A237E), // Deep indigo
+      end: const Color(0xFF3949AB), // Lighter indigo
+    ).animate(
       CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+        parent: _backgroundAnimationController,
+        curve: Curves.easeIn,
       ),
     );
 
-    _textAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    // Logo scale animation
+    _logoScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.2), weight: 60),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.2, end: 1.0), weight: 40),
+    ]).animate(
       CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.4, 1.0, curve: Curves.easeInOut),
+        parent: _contentAnimationController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
       ),
     );
 
-    _controller.forward();
+    // Logo rotation animation
+    _logoRotateAnimation = Tween<double>(
+      begin: 0.0,
+      end: 2 * 3.14159, // Full rotation (2π radians)
+    ).animate(
+      CurvedAnimation(
+        parent: _contentAnimationController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    // Title slide animation
+    _titleSlideAnimation = Tween<double>(begin: 50.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _contentAnimationController,
+        curve: const Interval(0.3, 0.7, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    // Subtitle fade animation
+    _subtitleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _contentAnimationController,
+        curve: const Interval(0.6, 0.9, curve: Curves.easeIn),
+      ),
+    );
+
+    // Task items animation
+    _taskItemsAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _contentAnimationController,
+        curve: const Interval(0.7, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    // Start animations
+    _backgroundAnimationController.forward();
+    _contentAnimationController.forward();
+
+    // Navigate to next screen after animations
+    Future.delayed(const Duration(milliseconds: 3200), () {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder:
+              (context, animation, secondaryAnimation) => const LoginWrapper(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 800),
+        ),
+      );
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _backgroundAnimationController.dispose();
+    _contentAnimationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Logo animation
-          AnimatedBuilder(
-            animation: _logoAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _logoAnimation.value,
-                child: Opacity(
-                  opacity: _logoAnimation.value,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
+    final screenSize = MediaQuery.of(context).size;
+    final logoSize = screenSize.width * 0.35; // Slightly larger logo
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        _backgroundAnimationController,
+        _contentAnimationController,
+      ]),
+      builder: (context, child) {
+        return Scaffold(
+          body: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  _backgroundColorAnimation.value ?? const Color(0xFF1A237E),
+                  const Color(0xFF3949AB),
+                ],
+                stops: const [0.3, 1.0],
+              ),
+            ),
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Animated logo
+                              Transform.rotate(
+                                angle: _logoRotateAnimation.value,
+                                child: Transform.scale(
+                                  scale: _logoScaleAnimation.value,
+                                  child: Container(
+                                    width: logoSize,
+                                    height: logoSize,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 8),
+                                          spreadRadius: 2,
+                                        ),
+                                        BoxShadow(
+                                          color: Colors.white.withOpacity(0.5),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 0),
+                                          spreadRadius: -5,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.check_circle_rounded,
+                                        size: logoSize * 0.6,
+                                        color: const Color(0xFF3949AB),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              SizedBox(height: screenSize.height * 0.06),
+
+                              // Animated title
+                              Transform.translate(
+                                offset: Offset(0, _titleSlideAnimation.value),
+                                child: const Text(
+                                  "Task Planner",
+                                  style: TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 1.2,
+                                    shadows: [
+                                      Shadow(
+                                        color: Color(0x99000000),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Animated subtitle
+                              Opacity(
+                                opacity: _subtitleFadeAnimation.value,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    "Organize your day efficiently",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              SizedBox(height: screenSize.height * 0.08),
+
+                              // Animated task items
+                              Opacity(
+                                opacity: _taskItemsAnimation.value,
+                                child: Transform.translate(
+                                  offset: Offset(
+                                    0,
+                                    20 * (1 - _taskItemsAnimation.value),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _buildFeatureIcon(
+                                        Icons.list_alt_rounded,
+                                        "Tasks",
+                                      ),
+                                      _buildFeatureIcon(
+                                        Icons.calendar_today_rounded,
+                                        "Calendar",
+                                      ),
+                                      _buildFeatureIcon(
+                                        Icons.notifications_rounded,
+                                        "Reminders",
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.check_circle_outline,
-                      size: 80,
-                      color: Colors.indigo,
-                    ),
-                  ),
-                ),
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
-          const SizedBox(height: 32),
-          // Text animation
-          AnimatedBuilder(
-            animation: _textAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _textAnimation.value,
-                child: Column(
-                  children: [
-                    const Text(
-                      "Task Planner",
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Organize your day efficiently",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFeatureIcon(IconData icon, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
-              );
-            },
+              ],
+            ),
+            child: Icon(icon, color: const Color(0xFF3949AB), size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
